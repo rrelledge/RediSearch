@@ -42,16 +42,6 @@ static void ReplyReaderResults(IndexReader *reader, RedisModuleCtx *ctx) {
   ReadIterator_Free(iter);
 }
 
-static RedisModuleString *getFieldKeyName(IndexSpec *spec, RedisModuleString *fieldNameRS,
-                                          FieldType t) {
-  const char *fieldName = RedisModule_StringPtrLen(fieldNameRS, NULL);
-  const FieldSpec *fieldSpec = IndexSpec_GetField(spec, fieldName, strlen(fieldName));
-  if (!fieldSpec) {
-    return NULL;
-  }
-  return IndexSpec_GetFormattedKey(spec, fieldSpec, t);
-}
-
 DEBUG_COMMAND(DumpTerms) {
   if (argc != 1) {
     return RedisModule_WrongArity(ctx);
@@ -155,13 +145,14 @@ DEBUG_COMMAND(NumericIndexSummary) {
     return RedisModule_WrongArity(ctx);
   }
   GET_SEARCH_CTX(argv[0])
-  RedisModuleKey *keyp = NULL;
-  RedisModuleString *keyName = getFieldKeyName(sctx->spec, argv[1], INDEXFLD_T_NUMERIC);
-  if (!keyName) {
+  size_t len;
+  const char *fname = RedisModule_StringPtrLen(argv[1], &len);
+  const FieldSpec *fs = IndexSpec_GetField(sctx->spec, fname, len);
+  if (!fs) {
     RedisModule_ReplyWithError(sctx->redisCtx, "Could not find given field in index spec");
     goto end;
   }
-  NumericRangeTree *rt = OpenNumericIndex(sctx, keyName, &keyp);
+  NumericRangeTree *rt = OpenNumericIndex(sctx, RedisModule_StringPtrLen(argv[1], NULL));
   if (!rt) {
     RedisModule_ReplyWithError(sctx->redisCtx, "can not open numeric field");
     goto end;
@@ -178,9 +169,6 @@ DEBUG_COMMAND(NumericIndexSummary) {
   RedisModule_ReplySetArrayLength(ctx, invIdxBulkLen);
 
 end:
-  if (keyp) {
-    RedisModule_CloseKey(keyp);
-  }
   SearchCtx_Free(sctx);
   return REDISMODULE_OK;
 }
@@ -190,13 +178,14 @@ DEBUG_COMMAND(DumpNumericIndex) {
     return RedisModule_WrongArity(ctx);
   }
   GET_SEARCH_CTX(argv[0])
-  RedisModuleKey *keyp = NULL;
-  RedisModuleString *keyName = getFieldKeyName(sctx->spec, argv[1], INDEXFLD_T_NUMERIC);
-  if (!keyName) {
+  size_t len;
+  const char *fname = RedisModule_StringPtrLen(argv[1], &len);
+  const FieldSpec *fs = IndexSpec_GetField(sctx->spec, fname, len);
+  if (!fs) {
     RedisModule_ReplyWithError(sctx->redisCtx, "Could not find given field in index spec");
     goto end;
   }
-  NumericRangeTree *rt = OpenNumericIndex(sctx, keyName, &keyp);
+  NumericRangeTree *rt = OpenNumericIndex(sctx, fname);
   if (!rt) {
     RedisModule_ReplyWithError(sctx->redisCtx, "can not open numeric field");
     goto end;
@@ -216,9 +205,6 @@ DEBUG_COMMAND(DumpNumericIndex) {
   RedisModule_ReplySetArrayLength(sctx->redisCtx, resultSize);
   NumericRangeTreeIterator_Free(iter);
 end:
-  if (keyp) {
-    RedisModule_CloseKey(keyp);
-  }
   SearchCtx_Free(sctx);
   return REDISMODULE_OK;
 }
@@ -228,13 +214,7 @@ DEBUG_COMMAND(DumpTagIndex) {
     return RedisModule_WrongArity(ctx);
   }
   GET_SEARCH_CTX(argv[0])
-  RedisModuleKey *keyp = NULL;
-  RedisModuleString *keyName = getFieldKeyName(sctx->spec, argv[1], INDEXFLD_T_TAG);
-  if (!keyName) {
-    RedisModule_ReplyWithError(sctx->redisCtx, "Could not find given field in index spec");
-    goto end;
-  }
-  TagIndex *tagIndex = TagIndex_Open(sctx, keyName, false, &keyp);
+  TagIndex *tagIndex = TagIndex_Open(sctx, RedisModule_StringPtrLen(argv[1], NULL), false);
   if (!tagIndex) {
     RedisModule_ReplyWithError(sctx->redisCtx, "can not open tag field");
     goto end;
@@ -259,9 +239,6 @@ DEBUG_COMMAND(DumpTagIndex) {
   TrieMapIterator_Free(iter);
 
 end:
-  if (keyp) {
-    RedisModule_CloseKey(keyp);
-  }
   SearchCtx_Free(sctx);
   return REDISMODULE_OK;
 }
@@ -445,7 +422,6 @@ DEBUG_COMMAND(InfoTagIndex) {
       {.name = "offset", .type = AC_ARGTYPE_UINT, .target = &options.offset},
       {.name = "limit", .type = AC_ARGTYPE_UINT, .target = &options.limit},
       {NULL}};
-  RedisModuleKey *keyp = NULL;
   ArgsCursor ac = {0};
   ACArgSpec *errSpec = NULL;
   ArgsCursor_InitRString(&ac, argv + 2, argc - 2);
@@ -455,13 +431,7 @@ DEBUG_COMMAND(InfoTagIndex) {
     goto end;
   }
 
-  RedisModuleString *keyName = getFieldKeyName(sctx->spec, argv[1], INDEXFLD_T_TAG);
-  if (!keyName) {
-    RedisModule_ReplyWithError(sctx->redisCtx, "Could not find given field in index spec");
-    goto end;
-  }
-
-  const TagIndex *idx = TagIndex_Open(sctx, keyName, false, &keyp);
+  const TagIndex *idx = TagIndex_Open(sctx, RedisModule_StringPtrLen(argv[1], NULL), false);
   if (!idx) {
     RedisModule_ReplyWithError(sctx->redisCtx, "can not open tag field");
     goto end;
@@ -524,9 +494,6 @@ reply_done:
   RedisModule_ReplySetArrayLength(ctx, nelem);
 
 end:
-  if (keyp) {
-    RedisModule_CloseKey(keyp);
-  }
   SearchCtx_Free(sctx);
   return REDISMODULE_OK;
 }

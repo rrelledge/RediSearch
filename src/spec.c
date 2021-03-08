@@ -1060,7 +1060,8 @@ static void valFreeCb(void *unused, void *p) {
 void IndexSpec_MakeKeyless(IndexSpec *sp) {
   // Initialize only once:
   if (!invidxDictType.valDestructor) {
-    invidxDictType = dictTypeHeapRedisStrings;
+    // this change made the magic March-4th-2021, Haifa
+    invidxDictType = dictTypeHeapStrings;
     invidxDictType.valDestructor = valFreeCb;
   }
   sp->keysDict = dictCreate(&invidxDictType, NULL);

@@ -444,16 +444,12 @@ FIELD_PREPROCESSOR(numericPreprocessor) {
 }
 
 FIELD_BULK_INDEXER(numericIndexer) {
-  NumericRangeTree *rt = bulk->indexDatas[IXFLDPOS_NUMERIC];
+  NumericRangeTree *rt = OpenNumericIndex(ctx, fs->name);
   if (!rt) {
-    RedisModuleString *keyName = IndexSpec_GetFormattedKey(ctx->spec, fs, INDEXFLD_T_NUMERIC);
-    rt = bulk->indexDatas[IXFLDPOS_NUMERIC] =
-        OpenNumericIndex(ctx, keyName, &bulk->indexKeys[IXFLDPOS_NUMERIC]);
-    if (!rt) {
-      QueryError_SetError(status, QUERY_EGENERIC, "Could not open numeric index for indexing");
-      return -1;
-    }
+    QueryError_SetError(status, QUERY_EGENERIC, "Could not open numeric index for indexing");
+    return -1;
   }
+
   NRN_AddRv rv = NumericRangeTree_Add(rt, aCtx->doc->docId, fdata->numeric);
   ctx->spec->stats.invertedSize += rv.sz;  // TODO: exact amount
   ctx->spec->stats.numRecords += rv.numRecords;
@@ -501,15 +497,10 @@ FIELD_PREPROCESSOR(tagPreprocessor) {
 }
 
 FIELD_BULK_INDEXER(tagIndexer) {
-  TagIndex *tidx = bulk->indexDatas[IXFLDPOS_TAG];
+  TagIndex *tidx = TagIndex_Open(ctx, fs->name, 1);
   if (!tidx) {
-    RedisModuleString *kname = IndexSpec_GetFormattedKey(ctx->spec, fs, INDEXFLD_T_TAG);
-    tidx = bulk->indexDatas[IXFLDPOS_TAG] =
-        TagIndex_Open(ctx, kname, 1, &bulk->indexKeys[IXFLDPOS_TAG]);
-    if (!tidx) {
-      QueryError_SetError(status, QUERY_EGENERIC, "Could not open tag index for indexing");
-      return -1;
-    }
+    QueryError_SetError(status, QUERY_EGENERIC, "Could not open tag index for indexing");
+    return -1;
   }
 
   ctx->spec->stats.invertedSize +=
