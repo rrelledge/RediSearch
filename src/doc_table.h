@@ -153,6 +153,8 @@ static inline int DocTable_DeleteR(DocTable *t, RedisModuleString *r) {
   return DocTable_Delete(t, s, n);
 }
 
+void DocTable_Remove(DocTable *t, RSDocumentMetadata *md);
+
 RSDocumentMetadata *DocTable_Pop(DocTable *t, const char *s, size_t n);
 static inline RSDocumentMetadata *DocTable_PopR(DocTable *t, RedisModuleString *r) {
   STRVARS_FROM_RSTRING(r);

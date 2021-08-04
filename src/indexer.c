@@ -243,11 +243,12 @@ static RSDocumentMetadata *makeDocumentId(RSAddDocumentCtx *aCtx, RedisSearchCtx
   DocTable *table = &spec->docs;
   Document *doc = aCtx->doc;
   if (replace) {
-    RSDocumentMetadata *dmd = DocTable_PopR(table, doc->docKey);
-    if (dmd) {
+    RSDocumentMetadata *md = DocTable_GetByKeyR(table, doc->docKey);
+    if (md) {
+      DocTable_Remove(table, md);
       // decrease the number of documents in the index stats only if the document was there
       --spec->stats.numDocuments;
-      aCtx->oldMd = dmd;
+      aCtx->oldMd = md;
       if (sctx->spec->gc) {
         GCContext_OnDelete(sctx->spec->gc);
       }

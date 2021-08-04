@@ -305,22 +305,24 @@ int DocTable_Delete(DocTable *t, const char *s, size_t n) {
   return 0;
 }
 
+void DocTable_Remove(DocTable *t, RSDocumentMetadata *md) {
+  if (!md) {
+    return;
+  }
+
+  md->flags |= Document_Deleted;
+
+  DocTable_DmdUnchain(t, md);
+  DocIdMap_Delete(&t->dim, md->keyPtr, strlen(md->keyPtr));
+  --t->size;
+}
+
 RSDocumentMetadata *DocTable_Pop(DocTable *t, const char *s, size_t n) {
   t_docId docId = DocIdMap_Get(&t->dim, s, n);
 
   if (docId && docId <= t->maxDocId) {
-
     RSDocumentMetadata *md = DocTable_Get(t, docId);
-    if (!md) {
-      return NULL;
-    }
-
-    md->flags |= Document_Deleted;
-
-    DocTable_DmdUnchain(t, md);
-    DocIdMap_Delete(&t->dim, s, n);
-    --t->size;
-
+    DocTable_Remove(t, md);
     return md;
   }
   return NULL;
