@@ -71,8 +71,8 @@ static void testAverage() {
     printf("ERROR!!!: %s\n", QueryError_GetError(&status));
     AGPLN_Dump(&r->ap);
   }
-  AREQ_Free(r);
-}
+  RedisModule_FreeThreadSafeContext(ctx);
+  AREQ_Free(r);}
 
 /**
  *         cmd = ['FT.AGGREGATE', 'games', '*',
@@ -115,6 +115,8 @@ static void testCountDistinct() {
   for (size_t ii = 0; ii < us.nserialized; ++ii) {
     printf("Serialized[%lu]: %s\n", ii, us.serialized[ii]);
   }
+  RedisModule_FreeThreadSafeContext(ctx);
+  AREQ_Free(r);
 }
 
 static void testSplit() {
@@ -151,6 +153,8 @@ static void testSplit() {
   for (size_t ii = 0; ii < us.nserialized; ++ii) {
     printf("Serialized[%lu]: %s\n", ii, us.serialized[ii]);
   }
+  RedisModule_FreeThreadSafeContext(ctx);
+  AREQ_Free(r);
 }
 
 int main(int, char **) {
