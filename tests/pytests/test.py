@@ -3403,6 +3403,14 @@ def test_mod1548(env):
     res = conn.execute_command('FT.SEARCH', 'idx', '@categories:{abcat0200000}', 'RETURN', '1', 'prod:id_unsupported')
     env.assertEqual(res, [2L, 'prod:1', [], 'prod:2', []])
 
+    # Supported jsonpath - query
+    res = conn.execute_command('FT.SEARCH', 'idx', '@prod\\:id:35114964', 'RETURN', '1', 'name')
+    env.assertEqual(res,  [1L, 'prod:1', ['name', 'foo']])
+
+    # Currently unsupported jsonpath - query
+    res = conn.execute_command('FT.SEARCH', 'idx', '@prod\\:id_unsupported:35114964', 'RETURN', '1', 'name')
+    env.assertEqual(res,  [0L])
+
 def test_empty_field_name(env):
     conn = getConnectionByEnv(env)
 
