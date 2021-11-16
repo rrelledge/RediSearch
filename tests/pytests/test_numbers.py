@@ -2,7 +2,7 @@
 
 import unittest
 from includes import *
-from common import getConnectionByEnv, waitForIndex, sortedResults, toSortedFlatList, skipOnExistingEnv
+from common import *
 from time import sleep
 from RLTest import Env
 import math
@@ -89,3 +89,46 @@ def testRangeParentsConfig(env):
 
 	# reset back
 	env.expect('ft.config', 'set', '_NUMERIC_RANGES_PARENTS', '0').equal('OK')
+
+def testEmptyNumericLeakIncrease(env):
+    # test numeric field which updates with increasing value
+    env.skipOnCluster()
+
+    conn = getConnectionByEnv(env)
+    conn.execute_command('FT.CREATE', 'idx', 'SCHEMA', 'n', 'NUMERIC')
+    pl = conn.pipeline()
+
+    repeat = 5
+    docs = 10000
+
+    for i in range(repeat):
+        for j in range(docs):
+            x = j + i * docs
+            pl.execute_command('HSET', 'doc{}'.format(j), 'n', format(x))
+        pl.execute()
+        forceInvokeGC(env, 'idx')
+    forceInvokeGC(env, 'idx')
+    env.expect('FT.DEBUG', 'DUMP_NUMIDX', 'idx', 'n').notContains('[]')
+
+def testEmptyNumericLeakCenter(env):
+    env.skipOnCluster()
+
+    conn = getConnectionByEnv(env)
+    conn.execute_command('FT.CREATE', 'idx', 'SCHEMA', 'n', 'NUMERIC')
+    pl = conn.pipeline()
+
+    repeat = 5
+    docs = 10000
+
+    for i in range(100):
+        pl.execute_command('HSET', 'doc{}'.format(i), 'n', format(i))
+    pl.execute()
+
+    for i in range(repeat):
+        for j in range(docs):
+            x = j + i * docs
+            pl.execute_command('HSET', 'doc{}'.format(j + 100), 'n', format(x))
+        pl.execute()
+        forceInvokeGC(env, 'idx')
+    forceInvokeGC(env, 'idx')
+    env.expect('FT.DEBUG', 'DUMP_NUMIDX', 'idx', 'n').notContains('[]')
