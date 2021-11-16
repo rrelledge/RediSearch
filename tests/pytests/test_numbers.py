@@ -110,6 +110,7 @@ def testEmptyNumericLeakIncrease(env):
     forceInvokeGC(env, 'idx')
     env.expect('FT.DEBUG', 'DUMP_NUMIDX', 'idx', 'n').notContains('[]')
 
+'''
 def testEmptyNumericLeakCenter(env):
     env.skipOnCluster()
 
@@ -132,3 +133,4 @@ def testEmptyNumericLeakCenter(env):
         forceInvokeGC(env, 'idx')
     forceInvokeGC(env, 'idx')
     env.expect('FT.DEBUG', 'DUMP_NUMIDX', 'idx', 'n').notContains('[]')
+'''
